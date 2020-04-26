@@ -470,10 +470,6 @@ void regress(reg_object obj,double *x,double *y,double *res,double *varcovar,dou
 	 sigma2 = (double*) malloc (sizeof(double) * 1);
 
 
-	 printf("Intercept %d \n", obj->intercept);
-
-	 printf("P2 %d \n",p2);
-
 	 linreg_multi(p,x,y,obj->N,b2,sigma2,varcovar,
 		obj->R2,res,alpha,anv2,low,up,obj->intercept);
 	 obj->df = obj->N - obj->p;
@@ -523,7 +519,12 @@ void regress_poly(reg_object obj,double *x,double *y,double *res,double *varcova
 	 *
 	 *For more information see the functions regress and reg_init
 	 */
-	polydeg = obj->p - 1;
+	 if (obj->intercept == 1) {
+		 polydeg = obj->p - 1;
+	 } else {
+		 polydeg = obj->p;
+	 }
+	
 
 	if ( polydeg < 1) {
 		printf("The Value of p should be greater than or equal to 2");
@@ -611,14 +612,24 @@ double pointpredict(reg_object obj,double *inp,double *varcovar,double *var) {
 	x0 = (double*) malloc (sizeof(double) * p);
 	b = (double*) malloc (sizeof(double) * p);
 	temp = (double*) malloc (sizeof(double) * p);
-	x0[0] = 1.0;
 
-	b[0] = (obj->beta)->value;
+	if (obj->intercept == 1) {
+		x0[0] = 1.0;
 
-	for(i = 1; i < p;++i) {
-		x0[i] = inp[i - 1];
-		b[i] = (obj->beta+i)->value;
+		b[0] = (obj->beta)->value;
+
+		for(i = 1; i < p;++i) {
+			x0[i] = inp[i - 1];
+			b[i] = (obj->beta+i)->value;
+		}
+	} else {
+
+		for(i = 0; i < p;++i) {
+			x0[i] = inp[i];
+			b[i] = (obj->beta+i)->value;
+		}
 	}
+	
 
 	// Output
 	mmult(x0,b,y,1,p,1);
