@@ -6,6 +6,7 @@ int main(void) {
 	int N, p, intercept;
 	double alpha;
 	double *res2;
+	char *llsmethod = "qr";
 
 	N = 15;
 	p = 3;
@@ -46,7 +47,7 @@ int main(void) {
 	double YY[15] = { 1673, 1688, 1666, 1735, 1749, 1756, 1815, 1867, 1948, 2048, 2128, 2165,
 		2257, 2316, 2324 };
 
-	linreg_multi(p, XX, YY, N, b2, sig2, varcovar, R2, res2, alpha, anv2, low, up,intercept);
+	linreg_multi(p, XX, YY, N, b2, sig2, varcovar, R2, res2, alpha, anv2, low, up,llsmethod,intercept);
 	printf("Estimates Regression Parameters : Beta1 = %lf ,Beta 2 = %lf ,Beta 3 = %lf \n", b2[0], b2[1], b2[2]);
 	printf("sigma2 = %lf , R^2 = %lf R^2 (Adj.) = %lf \n", sig2[0], R2[0], R2[1]);
 

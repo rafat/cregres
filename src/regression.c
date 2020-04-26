@@ -34,6 +34,7 @@ reg_object reg_init(int N, int p) {
 	obj->r2adj = obj->R2[1] = 0.0;
 	obj->df = 0;
 	obj->intercept = 1;
+	strcpy(obj->lls,"qr");
 
 	obj->TSS = 0.0;
 	obj->ESS = 0.0;
@@ -202,13 +203,13 @@ void zerohyp_clrm(int N,double *b, double *val, double *tval, double *pval) {
 
 void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 			double *xxti,double *R2,double *res,double alpha,double *anv,
-			double* ci_lower, double* ci_upper, int intercept) {
+			double* ci_lower, double* ci_upper,char *llsmethod, int intercept) {
 	/*
 	p corresponds to number of coefficients (including the intercept)
 	intercept - 1 : include intercept term. 0 : No intercept term
 	*/
 	double *x,*xt,*seb,*xb;
-	double *xxt,*yxt,*temp1,*temp2,*bt;
+	double *xxt,*yxt,*temp1,*temp2,*bt,*xxt2;
 	int i,df;
 	int *ipiv;
 	double tmp1,sum,ym,ym2,a2,ta2,intrvl,chia2,chi1a2,dfi,mss,rss;
@@ -224,7 +225,7 @@ void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 	 xt = (double*) malloc (sizeof(double) * p * N);
 	 xb = (double*) malloc (sizeof(double) * N);
 	 xxt = (double*) malloc (sizeof(double) * p * p);
-	 //xxti = (double*) malloc (sizeof(double) * p * p);
+	 xxt2 = (double*) malloc (sizeof(double) * p * p);
 	 yxt = (double*) malloc (sizeof(double) * p);
 	 ipiv = (int*) malloc (sizeof(int) * p);
 	 //yt = (double*) malloc (sizeof(double) * N);
@@ -257,6 +258,7 @@ void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 
 	 //cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,ra,cb,ca,1.0,x,ca,xt,cb,0.0,xxt,cb);
 	 mmult(xt,x,xxt,p,N,p);
+	 memcpy(xxt2,xxt,sizeof(double)*p*p);
 
 	 // Calculate  x' * y
 
@@ -268,10 +270,19 @@ void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 	 // x is b vector and
 	 // B is yxt
 
-	 ludecomp(xxt,p,ipiv);
-	 linsolve(xxt,p,yxt,ipiv,b);
-
-	 //lls_qr(xxt,yxt,p,p,b);
+	 //ludecomp(xxt,p,ipiv);
+	 //linsolve(xxt,p,yxt,ipiv,b);
+	 if (!strcmp(llsmethod,"qr")) {
+		 lls_qr(xxt,yxt,p,p,b);
+	 } else if (!strcmp(llsmethod,"normal")) {
+		 lls_normal(xxt,yxt,p,p,b);
+	 } else if (!strcmp(llsmethod,"svd")) {
+		 lls_svd2(xxt,yxt,p,p,b);
+	 } else {
+		 printf("This function only accepts one of three least square methods - \n");
+		 printf(" qr, normal and svd. \n");
+		 exit(-1);
+	 }
 
 	 //Find Variance of the residuals
 
@@ -286,8 +297,8 @@ void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 	 tmp1 = *sigma2;
 
 	 // Variance-Covariance Matrix of beta parameters
-
-	 minverse(xxt,p,ipiv,xxti);
+	 ludecomp(xxt2,p,ipiv);
+	 minverse(xxt2,p,ipiv,xxti);
 	 
 	 for(i = 0; i < p*p;++i) {
 		 xxti[i] *= tmp1;
@@ -391,7 +402,7 @@ void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 	 free(x);
 	 free(xt);
 	 free(xxt);
-	 //free(xxti);
+	 free(xxt2);
 	 free(yxt);
 	 free(temp1);
 	 free(temp2);
@@ -448,6 +459,20 @@ void setIntercept(reg_object obj,int intercept) {
 	}
 }
 
+void setLLSMethod(reg_object obj,char *llsmethod) {
+	if (!strcmp(llsmethod,"qr")) {
+		 strcpy(obj->lls,llsmethod);
+	 } else if (!strcmp(llsmethod,"normal")) {
+		 strcpy(obj->lls,llsmethod);
+	 } else if (!strcmp(llsmethod,"svd")) {
+		 strcpy(obj->lls,llsmethod);
+	 } else {
+		 printf("This function only accepts one of three least square methods - \n");
+		 printf(" qr, normal and svd. \n");
+		 exit(-1);
+	 }
+}
+
 void regress(reg_object obj,double *x,double *y,double *res,double *varcovar,double alpha) {
 	double *anv2,*b2,*low,*up,*sigma2;
 	int p,i,p2;
@@ -471,7 +496,7 @@ void regress(reg_object obj,double *x,double *y,double *res,double *varcovar,dou
 
 
 	 linreg_multi(p,x,y,obj->N,b2,sigma2,varcovar,
-		obj->R2,res,alpha,anv2,low,up,obj->intercept);
+		obj->R2,res,alpha,anv2,low,up,obj->lls,obj->intercept);
 	 obj->df = obj->N - obj->p;
 
 	 obj->sigma = sigma2[0];

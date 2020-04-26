@@ -27,6 +27,7 @@ struct reg_set{
 	double r2;
 	double r2adj;
 	double R2[2];
+	char lls[10];
 	int df;
 	int intercept;
 	double TSS;
@@ -107,7 +108,7 @@ void zerohyp_clrm(int N, double *b, double *val, double *tval, double *pval);
 
 void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
 			double *xxti,double *R2,double *res,double alpha,double *anv,
-			double* ci_lower, double* ci_upper, int intercept);
+			double* ci_lower, double* ci_upper,char *llsmethod, int intercept);
 
 void zerohyp_multi(int N, double *b, int p, double *varcovar, double *tval, double *pval);
 
@@ -116,6 +117,8 @@ void regress(reg_object obj, double *x, double *y, double *res, double *varcovar
 void regress_poly(reg_object obj, double *x, double *y, double *res, double *varcovar, double alpha);
 
 void setIntercept(reg_object obj,int intercept);
+
+void setLLSMethod(reg_object obj,char *llsmethod);
 
 void summary(reg_object obj);
 
