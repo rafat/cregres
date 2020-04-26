@@ -104,15 +104,17 @@ void zerohyp_clrm(int N, double *b, double *val, double *tval, double *pval);
 // p = 2 for one dependent variable	and one independent variable
 // p = 3 for one dependent variable	and two independent variables etc.
 
-void linreg_multi(int p, double *x, double *y, int N, double* b, double *sigma2,
-	double *xxti, double *R2, double *res, double alpha, double *anv,
-	double* ci_lower, double* ci_upper);
+void linreg_multi(int p, double *xi,double *y, int N, double* b,double *sigma2,
+			double *xxti,double *R2,double *res,double alpha,double *anv,
+			double* ci_lower, double* ci_upper, int intercept);
 
 void zerohyp_multi(int N, double *b, int p, double *varcovar, double *tval, double *pval);
 
 void regress(reg_object obj, double *x, double *y, double *res, double *varcovar, double alpha);
 
 void regress_poly(reg_object obj, double *x, double *y, double *res, double *varcovar, double alpha);
+
+void setIntercept(reg_object obj,int intercept);
 
 void summary(reg_object obj);
 

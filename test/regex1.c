@@ -6,7 +6,7 @@ int main(void) {
 	int N, i, p;
 	double alpha;
 	double *X,*Y,*res2;
-	
+
 	reg_object fit;
 
 	p = 2;// Total Number of variables. Simple Model -> Y = b0 + b1 * X + u with p = 2 ( two variables).
@@ -21,7 +21,7 @@ int main(void) {
 	double temp[10000];
 
 
-	ifp = fopen("Galton.txt","r");// Galton Child/Parent height dataset. Column 1 - Height of Child. Corresponding Column 2 - Height of Parent
+	ifp = fopen("../data/Galton.txt","r");// Galton Child/Parent height dataset. Column 1 - Height of Child. Corresponding Column 2 - Height of Parent
 	i = 0;
 	if (!ifp) {
 	printf("Cannot Open File");

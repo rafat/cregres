@@ -3,12 +3,13 @@
 #include "../header/cregres.h"
 
 int main(void) {
-	int N, p;
+	int N, p, intercept;
 	double alpha;
 	double *res2;
 
 	N = 15;
 	p = 3;
+	intercept = 1;
 
 	// p = 3 corresponds to one dependent variable (YY) and two independent variables
 	// YY = b0 + b1 * X1 + b2 * X2 + u
@@ -45,7 +46,7 @@ int main(void) {
 	double YY[15] = { 1673, 1688, 1666, 1735, 1749, 1756, 1815, 1867, 1948, 2048, 2128, 2165,
 		2257, 2316, 2324 };
 
-	linreg_multi(p, XX, YY, N, b2, sig2, varcovar, R2, res2, alpha, anv2, low, up);
+	linreg_multi(p, XX, YY, N, b2, sig2, varcovar, R2, res2, alpha, anv2, low, up,intercept);
 	printf("Estimates Regression Parameters : Beta1 = %lf ,Beta 2 = %lf ,Beta 3 = %lf \n", b2[0], b2[1], b2[2]);
 	printf("sigma2 = %lf , R^2 = %lf R^2 (Adj.) = %lf \n", sig2[0], R2[0], R2[1]);
 
@@ -73,3 +74,4 @@ int main(void) {
 	return 0;
 
 }
+

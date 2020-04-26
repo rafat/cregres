@@ -1,15 +1,6 @@
 
 #include "matrix.h"
 
-/*
- * matrix.c
-
- *
- *  Copyright (c) 2014, Rafat Hussain
- *	License : BSD 3-Clause
- *	See COPYRIGHT for more details
- */
-
 typedef struct {
 	double* a;
 	int b;
@@ -200,7 +191,7 @@ void stranspose(double *sig, int rows, int cols,double *col) {
 			u+=rows;
 		}
 	}
-	
+
 }
 
 void rtranspose(double *m, int rows, int cols,double *n, int r, int c) {
@@ -253,7 +244,7 @@ void ctranspose(double *sig, int rows, int cols,double *col) {
 
 void mtranspose(double *sig, int rows, int cols,double *col) {
 	int block;
-	
+
 	block = (int) BLOCKSIZE * 16;
 
 	if (rows >= block && cols >= block)  {
@@ -263,11 +254,81 @@ void mtranspose(double *sig, int rows, int cols,double *col) {
 	}
 }
 
+void itranspose(double *A, int M, int N) {
+	int i, j, p, iter;
+	double *buf;
+	double temp;
+
+	if (M == N) {
+		// M == N
+		for (i = 0; i < N; ++i) {
+			for (j = i + 1; j < N; ++j) {
+				temp = A[i + j*N];
+				A[i + j*N] = A[j + i*N];
+				A[j + i*N] = temp;
+			}
+		}
+	} else if (M > N) {
+
+		p = M - N;
+		buf = (double*)malloc(sizeof(double)* p * N);
+
+		memcpy(buf, A + N * N, sizeof(*A)*p*N);
+
+		for (i = 0; i < N; ++i) {
+			for (j = i + 1; j < N; ++j) {
+				temp = A[i + j*N];
+				A[i + j*N] = A[j + i*N];
+				A[j + i*N] = temp;
+			}
+		}
+
+		for (i = N - 1; i >= 1; --i) {
+			memmove(A + i*M, A + i*N, sizeof(*A)*M);
+		}
+
+
+		for (i = 0; i < N; ++i) {
+			iter = N + i * M;
+			for (j = 0; j < p; ++j) {
+				A[iter + j] = buf[j*N + i];
+			}
+		}
+
+		free(buf);
+	}
+	else if (M < N) {
+		p = N - M;
+		buf = (double*)malloc(sizeof(double)* p * M);
+
+		for (i = 0; i < M; ++i) {
+			iter = M + i*N;
+			for (j = 0; j < p; ++j) {
+				buf[j*M + i] = A[iter + j];
+			}
+		}
+
+		for (i = 1; i < M; ++i) {
+			memmove(A + i*M, A + i * N, sizeof(*A)*M);
+		}
+
+		for (i = 0; i < M; ++i) {
+			for (j = i + 1; j < M; ++j) {
+				temp = A[i + j*M];
+				A[i + j*M] = A[j + i*M];
+				A[j + i*M] = temp;
+			}
+		}
+		memcpy(A + M*M, buf, sizeof(*A)*p*M);
+		free(buf);
+	}
+}
+
 
 void mdisplay(double *A, int row, int col) {
 	int i,j;
 	printf("\n MATRIX Order : %d X %d \n \n",row,col);
-	
+
 	for (i = 0; i < row; i++) {
 		printf("R%d: ",i);
 		for ( j = 0; j < col;j++) {
@@ -281,10 +342,10 @@ void madd(double* A, double* B, double* C,int rows,int cols) {
 	int N,i;
 	/*
 	 * C = A + B . All matrices have identical dimensions rows X cols
-	 */ 
-	 
+	 */
+
 	N = rows * cols;
-	
+
 	#pragma omp parallel for
 	for (i = 0; i < N; ++i) {
 		C[i] = A[i] + B[i];
@@ -295,10 +356,10 @@ void msub(double* A, double* B, double* C,int rows,int cols) {
 	int N,i;
 	/*
 	 * C = A - B . All matrices have identical dimensions rows X cols
-	 */ 
-	 
+	 */
+
 	N = rows * cols;
-	
+
 	#pragma omp parallel for
 	for (i = 0; i < N; ++i) {
 		C[i] = A[i] - B[i];
@@ -310,10 +371,10 @@ void scale(double *A, int rows, int cols, double alpha) {
 	/*
 	 * A = alpha * A
 	 * Matrix A is overwritten.
-	 */ 
-	 
+	 */
+
 	N = rows * cols;
-	
+
 	#pragma omp parallel for
 	for (i = 0; i < N;++i) {
 		A[i] = alpha * A[i];
@@ -323,13 +384,13 @@ void scale(double *A, int rows, int cols, double alpha) {
 void nmult(double* A, double* B, double* C,int ra,int ca, int cb) {
 	register int i,j,k;
 	int u,v,t,rb;
-	
+
 	/*
 	 * C = A * B , where A is a ra*ca matric while B is a rb*cb
 	 * with ca = rb
 	 * Matrix C is a ra*cb matrix
-	 */ 
-	 
+	 */
+
 	rb = ca;
 	#pragma omp parallel for private(i,j,k,v,u,t)
 	for (i = 0; i < ra; ++i) {
@@ -356,8 +417,8 @@ void tmult(double* A, double* B, double* C,int ra,int ca, int cb) {
 	 * C = A * B , where A is a ra*ca matric while B is a rb*cb
 	 * with ca = rb
 	 * Matrix C is a ra*cb matrix
-	 */ 
-	 
+	 */
+
 	mtranspose(B,ca,cb,BT);
 	rb = ca;
 	#pragma omp parallel for private(i,j,k,v,u,t)
@@ -372,7 +433,7 @@ void tmult(double* A, double* B, double* C,int ra,int ca, int cb) {
 			}
 		}
 	}
-	
+
 	free(BT);
 
 }
@@ -395,17 +456,17 @@ void recmult(double* A, double* B, double* C,int m,int n, int p,int sA,int sB, i
 			}
 		}
 
-		
+
 	} else if (m >= n && m >= p) {
 		m2 = (int) ceil((double) m / 2.0);
 		recmult(A,B,C,m2,n,p,sA,sB,sC);
 		recmult(A + m2*sB,B,C + m2*sC,m-m2,n,p,sA,sB,sC);
-		
+
 	} else if (n >= m && n >= p) {
 		n2 = (int) ceil((double) n / 2.0);
 		recmult(A,B,C,m,n2,p,sA,sB,sC);
 		recmult(A+n2,B+n2*sC,C,m,n-n2,p,sA,sB,sC);
-		
+
 	} else if (p >= m && p >= n) {
 		p2 = (int) ceil((double) p / 2.0);
 		recmult(A,B,C,m,n,p2,sA,sB,sC);
@@ -424,9 +485,9 @@ void rmult(double* A, double* B, double* C,int m,int n, int p) {
 	for(i = 0; i < N; ++i) {
 		C[i] = 0.;
 	}
-	
+
 	recmult(A,B,C,m,n,p,strA,strB,strC);
-	
+
 }
 
 int findrec(int *a, int *b, int *c) {
@@ -437,7 +498,7 @@ int findrec(int *a, int *b, int *c) {
 	dc = (double) *c;
 	rec = 0;
 	mul = 1.;
-	
+
 	while (da + db + dc > (double) CUTOFF) {
 		rec++;
 		mul *= 2;
@@ -448,7 +509,7 @@ int findrec(int *a, int *b, int *c) {
 	*a = (int) da * mul;
 	*b = (int) db * mul;
 	*c = (int) dc * mul;
-	
+
 	return rec;
 }
 
@@ -456,7 +517,7 @@ void add_zero_pad(double *X, int rows, int cols, int zrow, int zcol,double *Y) {
 	int r,c,i,j,u,v;
 	r = rows + zrow;
 	c = cols + zcol;
-	
+
 	for (i = 0; i < rows;++i) {
 		u = i*c;
 		v = i * cols;
@@ -467,21 +528,21 @@ void add_zero_pad(double *X, int rows, int cols, int zrow, int zcol,double *Y) {
 			Y[u + j] = 0.;
 		}
 	}
-	
+
 	for (i = rows; i < r;++i) {
 		u = i*c;
 		for(j = 0; j < c;++j) {
 			Y[u + j] = 0.;
 		}
 	}
-	
+
 }
 
 void remove_zero_pad(double *Y, int rows, int cols, int zrow, int zcol,double *Z) {
 	int r,c,i,j,u,v;
 	r = rows - zrow;
 	c = cols - zcol;
-	
+
 	for (i = 0; i < r; ++i) {
 		u = i * c;
 		v = i * cols;
@@ -493,7 +554,7 @@ void remove_zero_pad(double *Y, int rows, int cols, int zrow, int zcol,double *Z
 
 void madd_stride(double* A, double* B, double* C,int rows,int cols,int sA,int sB,int sC) {
 	int i,j,u,v,w;
-	 
+
 	for (i = 0; i < rows; ++i) {
 		u = i * sC;
 		v = i * sA;
@@ -506,7 +567,7 @@ void madd_stride(double* A, double* B, double* C,int rows,int cols,int sA,int sB
 
 void msub_stride(double* A, double* B, double* C,int rows,int cols,int sA,int sB,int sC) {
 	int i,j,u,v,w;
-	 
+
 	for (i = 0; i < rows; ++i) {
 		u = i * sC;
 		v = i * sA;
@@ -528,7 +589,7 @@ void rmadd_stride(double* A, double* B, double* C,int rows,int cols,int p,int sA
 				C[j + u] = A[j + v] + B[j + w];
 			}
 		}
-		
+
 	 } else {
 		 rows/=2;cols/=2;p/=2;
 		 rmadd_stride(A,B,C,rows,cols,p,sA,sB,sC);
@@ -549,7 +610,7 @@ void rmsub_stride(double* A, double* B, double* C,int rows,int cols,int p,int sA
 				C[j + u] = A[j + v] - B[j + w];
 			}
 		}
-		
+
 	 } else {
 		 rows/=2;cols/=2;p/=2;
 		 rmsub_stride(A,B,C,rows,cols,p,sA,sB,sC);
@@ -584,7 +645,7 @@ void srecmult(double* A, double* B, double* C,int m,int n, int p,int sA,int sB, 
 			}
 		}
 
-		
+
 	} else {
 		m/=2;n/=2;p/=2;
 		// A size mXn, C size mXp
@@ -592,157 +653,157 @@ void srecmult(double* A, double* B, double* C,int m,int n, int p,int sA,int sB, 
 		a12 = A + n;
 		a21 = A + m * sA;
 		a22 = A + n + m * sA;
-		
+
 		//B size nXp
-		
+
 		b11 = B;
 		b12 = B + p;
 		b21 = B + n * sB;
 		b22 = B + p + n * sB;
-		
+
 		//C size mXp
-		
+
 		c11 = C;
 		c12 = C + p;
 		c21 = C + m * sC;
 		c22 = C + p + m * sC;
-		
+
 		// m matrices have dimension m X p each. See http://en.wikipedia.org/wiki/Strassen_algorithm
-		
+
 		m1 = (double*) malloc(sizeof(double) *m * p);
 		sm1 = p;
-		
+
 		m3 = (double*) malloc(sizeof(double) *m * p);
 		sm3 = p;
-		
+
 		m4 = (double*) malloc(sizeof(double) *m * p);
 		sm4 = p;
-		
+
 		m2 = c21;
 		sm2 = sC;
-		
+
 		m5 = c12;
 		sm5 = sC;
-		
+
 		m6 = c22;
 		sm6 = sC;
-		
-		
+
+
 		m7 = c11;
 		sm7 = sC;
-		
+
 		//m1
-		
+
 		sA1 = n;
 		sB1 = p;
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * n);
 		B1 = (double*) malloc(sizeof(double) * n * p);
-		
+
 		madd_stride(a11,a22,A1,m,n,sA,sA,sA1);
-		
+
 		madd_stride(b11,b22,B1,n,p,sB,sB,sB1);
-		
+
 		srecmult(A1,B1,m1,m,n,p,sA1,sB1,sm1);
-		
+
 		free(A1);
 		free(B1);
-		
-		
+
+
 		//m2
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * n);
-		
+
 		madd_stride(a21,a22,A1,m,n,sA,sA,sA1);
-				
+
 		srecmult(A1,b11,m2,m,n,p,sA1,sB,sm2);
-		
+
 		free(A1);
-		
-		
+
+
 		//m3
-		
+
 		B1 = (double*) malloc(sizeof(double) * n * p);
 		//rmsub_stride(B + p,B + p + n * sC,B1,n,p,m,sC,sC,sC/2);
 		msub_stride(b12,b22,B1,n,p,sB,sB,sB1);
 		srecmult(a11,B1,m3,m,n,p,sA,sB1,sm3);
-		
+
 		free(B1);
-		
+
 		//m4
-		
+
 		B1 = (double*) malloc(sizeof(double) * n * p);
 		//rmsub_stride(B + p,B + p + n * sC,B1,n,p,m,sC,sC,sC/2);
 		msub_stride(b21,b11,B1,n,p,sB,sB,sB1);
 		srecmult(a22,B1,m4,m,n,p,sA,sB1,sm4);
-		
+
 		free(B1);
-		
+
 		//m5
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * n);
-		
+
 		madd_stride(a11,a12,A1,m,n,sA,sA,sA1);
-				
+
 		srecmult(A1,b22,m5,m,n,p,sA1,sB,sm5);
-		
+
 		free(A1);
-		
-		
+
+
 		//m6
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * n);
 		B1 = (double*) malloc(sizeof(double) * n * p);
-		
+
 		msub_stride(a21,a11,A1,m,n,sA,sA,sA1);
 		madd_stride(b11,b12,B1,n,p,sB,sB,sB1);
 		srecmult(A1,B1,m6,m,n,p,sA1,sB1,sm6);
-	
+
 		free(A1);
 		free(B1);
-		
+
 		//m7
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * n);
 		B1 = (double*) malloc(sizeof(double) * n * p);
-		
+
 		msub_stride(a12,a22,A1,m,n,sA,sA,sA1);
 		madd_stride(b21,b22,B1,n,p,sB,sB,sB1);
 		srecmult(A1,B1,m7,m,n,p,sA1,sB1,sm7);
-	
+
 		free(A1);
 		free(B1);
-		
-		
+
+
 		// c11
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * p);
 		sA1 = p;
 		madd_stride(m1,m7,m7,m,p,sm1,sm7,sm7);
 		msub_stride(m4,m5,A1,m,p,sm4,sm5,sA1);
 		madd_stride(m7,A1,m7,m,p,sm7,sA1,sm7);
-		
+
 		free(A1);
-		
-		
+
+
 		// c22
-		
+
 		A1 = (double*) malloc(sizeof(double) * m * p);
 		sA1 = p;
 		madd_stride(m1,m6,m6,m,p,sm1,sm6,sm6);
 		msub_stride(m3,m2,A1,m,p,sm3,sm2,sA1);
 		madd_stride(m6,A1,m6,m,p,sm6,sA1,sm6);
-		
+
 		free(A1);
-		
-		//c12 
-		
+
+		//c12
+
 		madd_stride(m3,m5,m5,m,p,sm3,sm5,sm5);
-		
+
 		//c21
-		
+
 		madd_stride(m4,m2,m2,m,p,sm4,sm2,sm2);
-		
+
 		free(m1);
 		free(m3);
 		free(m4);
@@ -761,21 +822,21 @@ void smult(double* A, double* B, double* C,int m,int n, int p) {
 	Z = (double*) malloc(sizeof(double) * a * c);
 	P = (double*) malloc(sizeof(double) * (a/2) * (c/2));
 
-	
+
 	add_zero_pad(A,m,n,a-m,b-n,X);
 	add_zero_pad(B,n,p,b-n,c-p,Y);
 
 	srecmult(X,Y,Z,a,b,c,b,c,c);
 	// Memory allocation needs work
-	
+
 	remove_zero_pad(Z,a,c,a-m,c-p,C);
-	
+
 	// free X,Y,Z
 	free(X);
 	free(Y);
 	free(Z);
 	free(P);
-	
+
 }
 
 void mmult(double* A, double* B, double* C,int m,int n, int p) {
@@ -791,7 +852,7 @@ static int pludecomp(double *A,int N,int *ipiv) {
 	double ld,mult,mval,temp;
 	for(k=0;k < N;++k)
 		ipiv[k] = k;
-	
+
 	for(k = 0; k < N-1; ++k) {
 		//c2 = k*N;
 		mval = fabs(A[k*N + k]);
@@ -802,7 +863,7 @@ static int pludecomp(double *A,int N,int *ipiv) {
 				mind = j;
 			}
 		}
-		
+
 		if ( mind != k) {
 			c1 = k *N;
 			c2 = mind * N;
@@ -827,28 +888,364 @@ static int pludecomp(double *A,int N,int *ipiv) {
 				}
 			}
 		}
-		
+
 	}
 	return 0;
-	
+
 }
 
 void ludecomp(double *A,int N,int *ipiv) {
 	pludecomp(A,N,ipiv);
 }
 
+int rludecomp(double *A, int M, int N, int *ipiv) {
+	int k, j, l, c1, c2, mind, tempi;
+	double ld, mult, mval, temp;
+
+
+	for (k = 0; k < M; ++k)
+		ipiv[k] = (double) k;
+
+	if (M > N) {
+		for (k = 0; k < N; ++k) {
+			mval = fabs(A[k*N + k]);
+			mind = k;
+			for (j = k + 1; j < M; ++j) {
+				if (mval < fabs(A[j*N + k])) {
+					mval = A[j*N + k];
+					mind = j;
+				}
+			}
+
+			if (mind != k) {
+				c1 = k *N;
+				c2 = mind * N;
+				tempi = ipiv[mind];
+				ipiv[mind] = ipiv[k];
+				ipiv[k] = tempi;
+				for (j = 0; j < N; j++) {
+					temp = A[c1 + j];
+					*(A + c1 + j) = *(A + c2 + j);
+					*(A + c2 + j) = temp;
+				}
+			}
+
+			c2 = k*N;
+			ld = A[c2 + k];
+			if (ld != 0. && k < N) {
+				for (j = k + 1; j < M; ++j) {
+					c1 = j*N;
+					mult = A[c1 + k] /= ld;
+					//printf("\n k %d j %d mult %f \n",k,j,mult);
+					for (l = k + 1; l < N; ++l) {
+						A[c1 + l] -= mult * A[c2 + l];
+					}
+				}
+			}
+		}
+	}
+	else if (M < N) {
+		for (k = 0; k < M-1; ++k) {
+			mval = fabs(A[k*N + k]);
+			mind = k;
+			for (j = k + 1; j < M; ++j) {
+				if (mval < fabs(A[j*N + k])) {
+					mval = A[j*N + k];
+					mind = j;
+				}
+			}
+
+			if (mind != k) {
+				c1 = k *N;
+				c2 = mind * N;
+				tempi = ipiv[mind];
+				ipiv[mind] = ipiv[k];
+				ipiv[k] = tempi;
+				for (j = 0; j < N; j++) {
+					temp = A[c1 + j];
+					*(A + c1 + j) = *(A + c2 + j);
+					*(A + c2 + j) = temp;
+				}
+			}
+
+			c2 = k*N;
+			ld = A[c2 + k];
+			if (ld != 0.) {
+				for (j = k + 1; j < M; ++j) {
+					c1 = j*N;
+					mult = A[c1 + k] /= ld;
+					//printf("\n k %d j %d mult %f \n",k,j,mult);
+					for (l = k + 1; l < N; ++l) {
+						A[c1 + l] -= mult * A[c2 + l];
+					}
+				}
+			}
+		}
+	}
+	else if (M == N) {
+		pludecomp(A,N,ipiv);
+	}
+
+	//mdisplay(ipiv, 1, M);
+
+	return 0;
+
+
+}
+
+void getPLU(double *A, int M , int N, int *ipiv,double *P, double *L, double *U) {
+	int i, j,k;
+	// Initialize all the arrays
+	// P - M*M
+	// M > N
+	// L - M*N , U - N*N
+	// M = N
+	// L - M*M , U M*M
+	// M < N
+	// L - M*M, U - M*N
+
+	if (P) {
+		for (i = 0; i < M*M; ++i) {
+			P[i] = 0.0;
+		}
+		for (j = 0; j < M; ++j) {
+			P[ipiv[j]*M + j] = 1.0;
+		}
+	}
+
+	if (M == N) {
+		if (L) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					L[i*M + j] = A[i*M + j];
+				}
+				L[i*M + i] = 1.0;
+				for (j = i + 1; j < M; ++j) {
+					L[i*M + j] = 0.0;
+				}
+			}
+		}
+		if (U) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					U[i*M + j] = 0.0;
+				}
+				for (j = i; j < M; ++j) {
+					U[i*M + j] = A[i*M + j];
+				}
+			}
+		}
+	}
+	else if (M > N) {
+		if (L) {
+			for (i = 0; i < N; ++i) {
+				for (j = 0; j < i; ++j) {
+					L[i*N + j] = A[i*N + j];
+				}
+				L[i*N + i] = 1.0;
+				for (j = i + 1; j < N; ++j) {
+					L[i*N + j] = 0.0;
+				}
+			}
+			memcpy(L + N*N, A + N*N, sizeof(double)*(M - N)*N);
+		}
+		if (U) {
+			for (i = 0; i < N; ++i) {
+				for (j = 0; j < i; ++j) {
+					U[i*N + j] = 0.0;
+				}
+				for (j = i; j < N; ++j) {
+					U[i*N + j] = A[i*N + j];
+				}
+			}
+		}
+	}
+	else if (M < N) {
+		if (L) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					L[i*M + j] = A[i*N + j];
+				}
+				L[i*M + i] = 1.0;
+				for (j = i + 1; j < M; ++j) {
+					L[i*M + j] = 0.0;
+				}
+			}
+		}
+
+		if (U) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					U[i*N + j] = 0.0;
+				}
+				for (j = i; j < N; ++j) {
+					U[i*N + j] = A[i*N + j];
+				}
+			}
+		}
+	}
+}
+
+void getPU(double *A, int M, int N, int *ipiv, double *P,double *U) {
+	int i,j,K;
+	int *ipivt;
+	double *L;
+
+	ipivt = (int*)malloc(sizeof(int)*M);
+
+	for (i = 0; i < M; ++i) {
+		ipivt[ipiv[i]] = i;
+	}
+
+	if (M > N) {
+		K = N;
+	}
+	else {
+		K = M;
+	}
+
+	L = (double*)malloc(sizeof(double)*M*K);
+
+	if (M == N) {
+		if (L) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					L[i*M + j] = A[i*M + j];
+				}
+				L[i*M + i] = 1.0;
+				for (j = i + 1; j < M; ++j) {
+					L[i*M + j] = 0.0;
+				}
+			}
+		}
+		if (U) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					U[i*M + j] = 0.0;
+				}
+				for (j = i; j < M; ++j) {
+					U[i*M + j] = A[i*M + j];
+				}
+			}
+		}
+	}
+	else if (M > N) {
+		if (L) {
+			for (i = 0; i < N; ++i) {
+				for (j = 0; j < i; ++j) {
+					L[i*N + j] = A[i*N + j];
+				}
+				L[i*N + i] = 1.0;
+				for (j = i + 1; j < N; ++j) {
+					L[i*N + j] = 0.0;
+				}
+			}
+			memcpy(L + N*N, A + N*N, sizeof(double)*(M - N)*N);
+		}
+		if (U) {
+			for (i = 0; i < N; ++i) {
+				for (j = 0; j < i; ++j) {
+					U[i*N + j] = 0.0;
+				}
+				for (j = i; j < N; ++j) {
+					U[i*N + j] = A[i*N + j];
+				}
+			}
+		}
+	}
+	else if (M < N) {
+		if (L) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					L[i*M + j] = A[i*N + j];
+				}
+				L[i*M + i] = 1.0;
+				for (j = i + 1; j < M; ++j) {
+					L[i*M + j] = 0.0;
+				}
+			}
+		}
+
+		if (U) {
+			for (i = 0; i < M; ++i) {
+				for (j = 0; j < i; ++j) {
+					U[i*N + j] = 0.0;
+				}
+				for (j = i; j < N; ++j) {
+					U[i*N + j] = A[i*N + j];
+				}
+			}
+		}
+	}
+
+	for (i = 0; i < M; ++i) {
+		memcpy(P + i*K, L + ipivt[i] * K, sizeof(double)*K);
+	}
+
+
+	free(ipivt);
+	free(L);
+}
+
+double* marsaglia_generate(double *values, int N, double average, double  deviation)
+{
+	int i;
+	int M;
+	double x, y, rsq, f;
+
+	M = N + N % 2;
+
+
+
+	for (i = 0; i < N - 1; i += 2)
+	{
+		do {
+			x = 2.0 * rand() / (double)RAND_MAX - 1.0;
+			y = 2.0 * rand() / (double)RAND_MAX - 1.0;
+			rsq = x * x + y * y;
+		} while (rsq >= 1. || rsq == 0.);
+		f = sqrt(-2.0 * log(rsq) / rsq);
+		values[i] = x * f;
+		values[i + 1] = y * f;
+	}
+
+	if (M != N) {
+		do {
+			x = 2.0 * rand() / (double)RAND_MAX - 1.0;
+			y = 2.0 * rand() / (double)RAND_MAX - 1.0;
+			rsq = x * x + y * y;
+		} while (rsq >= 1. || rsq == 0.);
+		f = sqrt(-2.0 * log(rsq) / rsq);
+		values[N - 1] = x * f;
+	}
+
+
+	for (i = 0; i < N; ++i) {
+		values[i] = (values[i] * deviation + average);
+	}
+	return values;
+}
+
+void random_matrix(double *A, int M, int N) {
+	int dim;
+	dim = M*N;
+
+	marsaglia_generate(A, dim, 0.0, 1.0);
+}
+
+
 void linsolve(double *A,int N,double *b,int *ipiv,double *x) {
 	int i,j,c1,l;
 	double *y;
 	double sum;
-	
+
 	y = (double*) malloc(sizeof(double) *N);
 	/*
 	 * Two step Solution L * U * x = b
 	 * Let U*x = y
 	 * Solve L * y = b for y (Forward Substitution
 	 * Solve U * x = b for x (Back Substitution)
-	 */ 
+	 */
 	for(i = 0; i < N;++i) {
 		y[i] = 0.;
 		x[i] = 0.;
@@ -858,9 +1255,9 @@ void linsolve(double *A,int N,double *b,int *ipiv,double *x) {
 		}
 		//printf("\n B %d",ipiv[i]);
 	}
-	
+
 	// Forward Substitution
-	
+
 	y[0] = b[ipiv[0]];
 	for(i = 1; i < N; ++i) {
 		sum = 0.;
@@ -870,11 +1267,11 @@ void linsolve(double *A,int N,double *b,int *ipiv,double *x) {
 		}
 		y[i] = b[ipiv[i]] - sum;
 	}
-	
+
 	// Back Substitution
-	
+
 	x[N - 1] = y[N - 1]/A[N * N - 1];
-	
+
 	for (i = N - 2; i >= 0; i--) {
 		sum = 0.;
 		c1 = i*(N+1);
@@ -885,22 +1282,22 @@ void linsolve(double *A,int N,double *b,int *ipiv,double *x) {
 		}
 		x[i] = (y[i] - sum) / A[c1];
 	}
-	
+
 	free(y);
 }
 
 void minverse(double *A,int N,int *ipiv,double *inv) {
 	int i,j,stride;
 	double *col,*x;
-	
+
 	col = (double*) malloc(sizeof(double) * N);
 	x = (double*) malloc(sizeof(double) * N);
-	
+
 	for (i = 0; i < N; ++i) {
 		col[i] = 0.;
 		x[i] = 0.;
 	}
-	
+
 	for (i = 0; i < N; ++i) {
 		col[i] = 1.;
 		linsolve(A,N,col,ipiv,x);
@@ -911,7 +1308,7 @@ void minverse(double *A,int N,int *ipiv,double *inv) {
 		}
 		col[i] = 0.;
 	}
-		
+
 	free(x);
 	free(col);
 }
@@ -927,7 +1324,23 @@ void eye(double *mat,int N) {
 				mat[t+j] = 0.;
 			}
 		}
-		
+
+	}
+}
+
+void eye_scale(double *mat, int N, double lambda) {
+	int i, j, t;
+	for (i = 0; i < N; ++i) {
+		for (j = 0; j < N; ++j) {
+			t = i*N;
+			if (i == j) {
+				mat[t + j] = lambda;
+			}
+			else {
+				mat[t + j] = 0.;
+			}
+		}
+
 	}
 }
 
@@ -935,42 +1348,42 @@ static double house_1(double*x,int N,double *v) {
 	double beta,mu,temp;
 	double *sigma;
 	int i;
-	
+
 	sigma = (double*) malloc(sizeof(double) * 1);
-	
+
 	if (N > 1) {
 		mmult(x+1,x+1,sigma,1,N-1,1);
 	} else {
 		sigma[0] = 0.0;
 	}
-	
+
 	v[0] =1.;
 	for (i = 1; i < N;++i) {
 		v[i] = x[i];
 	}
-	
+
 	if (sigma[0] == 0. && x[0] >= 0.) {
 		beta = 0.;
 	} else if (sigma[0] == 0. && x[0] < 0.) {
 		beta = -2.;
 	}else {
 		mu = sqrt(sigma[0] + x[0] * x[0]);
-		
+
 		if (x[0] <= 0.) {
 			v[0] = x[0] - mu;
 		} else {
 			v[0] = - sigma[0] / (x[0] + mu);
 		}
 		temp = v[0];
-		
+
 		beta = (2.0 * v[0] * v[0]) /(sigma[0] + v[0] * v[0]);
-		
+
 		for (i = 0; i < N;++i) {
 			v[i] /= temp;
 		}
-		
+
 	}
-	
+
 	free(sigma);
 	return beta;
 }
@@ -979,20 +1392,20 @@ double house_2(double*x,int N,double *v) {
 	double sgn,beta,sc;
 	double *sigma,*e;
 	int i;
-	
+
 	sigma = (double*) malloc(sizeof(double) * 1);
 	e = (double*) malloc(sizeof(double) * N);
-	
+
 	beta = 2.0;
 	sgn = 1.0;
 	mmult(x,x,sigma,1,N,1);
 	sigma[0] = sqrt(sigma[0]);
-	
+
 	e[0] =1.;
 	for (i = 1; i < N;++i) {
 		e[i] = 0.;
 	}
-	
+
 	if (x[0] > 0.) {
 		sgn = 1.0;
 	} else if (x[0] < 0.) {
@@ -1000,24 +1413,24 @@ double house_2(double*x,int N,double *v) {
 	} else if (x[0] == 0.) {
 		sgn = 0.;
 	}
-	
+
 	sc = sigma[0] * sgn;
-	
+
 	//scale(e,N,1,sc);
-	
+
 	e[0] *= sc;
-	
+
 	for(i = 0; i < N;++i) {
 		v[i] = e[i] + x[i];
 	}
-	
+
 	mmult(v,v,sigma,1,N,1);
 	sigma[0] = sqrt(sigma[0]);
-	
+
 	for(i = 0; i < N;++i) {
 		v[i] = v[i] / sigma[0];
 	}
-	
+
 	free(sigma);
 	free(e);
 	return beta;
@@ -1032,21 +1445,187 @@ double house(double*x,int N,double *v) {
 
 void housemat(double *v, int N,double beta,double *mat) {
 	double *temp;
-	
+
 	temp = (double*) malloc(sizeof(double) * N * N);
 	eye(mat,N);
 	mmult(v,v,temp,N,1,N);
 	scale(temp,N,N,beta);
 	msub(mat,temp,mat,N,N);
-	
+
 	free(temp);
+}
+
+static void tred2(double *a, int N, double *d, double *e) {
+	// Modified version of Numerical recipes tred2 alogorithm
+	int l, k, j, i;
+	double scale, hh, h, g, f;
+
+	for (i = N - 1; i > 0; --i) {
+		l = i - 1;
+		h = scale = 0.0;
+
+		if (l > 0) {
+			for (k = 0; k <= l; ++k) {
+				scale +=(double) fabs(a[i*N + k]);
+			}
+			if (scale == 0.0) {
+				e[i] = a[i*N + l];
+			}
+			else {
+				for (k = 0; k <= l; ++k) {
+					a[i*N + k] /= scale;
+					h += a[i*N + k] * a[i*N + k];
+				}
+				f = a[i*N + l];
+				g = (double) (f >= 0.0 ? -sqrt(h) : sqrt(h));
+				e[i] = scale*g;
+				h -= f*g;
+				a[i*N + l] = f - g;
+				f = 0.0;
+
+				for (j = 0; j <= l; ++j) {
+					a[j*N + i] = a[i*N + j] / h;
+					g = 0.0;
+					for (k = 0; k <= j; ++k) {
+						g += a[j*N + k] * a[i*N + k];
+					}
+					for (k = j + 1; k <= l; ++k) {
+						g += a[k*N + j] * a[i*N + k];
+					}
+					e[j] = g / h;
+					f += e[j] * a[i*N + j];
+				}
+				hh = f / (h + h);
+				for (j = 0; j <= l; ++j) {
+					f = a[i*N + j];
+					e[j] = g = e[j] - hh*f;
+					for (k = 0; k <= j; ++k) {
+						a[j*N + k] -= (f*e[k] + g*a[i*N + k]);
+					}
+				}
+			}
+
+		}
+		else {
+			e[i] = a[i*N + l];
+		}
+		d[i] = h;
+	}
+
+	d[0] = 0.0;
+	e[0] = 0.0;
+
+	for (i = 0; i < N; ++i) {
+		l = i - 1;
+		if (d[i]) {
+			for (j = 0; j <= l; ++j) {
+				g = 0.0;
+				for (k = 0; k <= l; ++k) {
+					g += a[i*N+k] * a[k*N+j];
+				}
+				for (k = 0; k <= l; ++k) {
+					a[k*N + j] -= g*a[k*N+i];
+				}
+			}
+		}
+		d[i] = a[i*N+i];
+		a[i*N+i] = 1.0;
+		for (j = 0; j <= l; ++j) {
+			a[j*N+i] = a[i*N+j] = 0.0;
+		}
+	}
+}
+
+static double pythag(double a, double b) {
+	double absa, absb,val;
+	absa = (double) fabs(a);
+	absb = (double) fabs(b);
+
+	if (absa > absb) {
+		val = (double) absa*sqrt(1.0 + (absb / absa)*(absb / absa));
+		return val;
+	}
+	else {
+		val = (double) (absb == 0.0 ? 0.0 : absb*sqrt(1.0 + (absa / absb)*(absa / absb)));
+		return val;
+	}
+}
+
+static void tqli(double *d, int N, double *e, double *z) {
+	int m, l, iter, i, k;
+	double s, r, p, g, f, dd, c, b;
+
+	for (i = 1; i < N; ++i) {
+		e[i - 1] = e[i];
+	}
+	e[N - 1] = 0;
+
+	for (l = 0; l < N; ++l) {
+		iter = 0;
+		do {
+			for (m = l; m < N - 1; ++m) {
+				dd =(double) fabs(d[m]) + fabs(d[m + 1]);
+				if ((double)(fabs(e[m]) + dd) == dd) {
+					break;
+				}
+			}
+			if (m != l) {
+				if (iter++ == 30) {
+					printf("Too many iterations in tqli");
+				}
+				g = (d[l + 1] - d[l]) / (2.0*e[l]);
+				r = pythag(g, 1.0);
+				g = d[m] - d[l] + e[l] / (g + (double) SIGN(r, g));
+				s = c = 1.0;
+				p = 0.0;
+				for (i = m - 1; i >= l; --i) {
+					f = s*e[i];
+					b = c*e[i];
+					e[i + 1] = (r = pythag(f, g));
+					if (r == 0.0) {
+						d[i + 1] -= p;
+						e[m] = 0.0;
+						break;
+					}
+					s = f / r;
+					c = g / r;
+					g = d[i + 1] - p;
+					r = (d[i] - g)*s + 2.0*c*b;
+					d[i + 1] = g + (p = s*r);
+					g = c*r - b;
+					for (k = 0; k < N; ++k) {
+						f = z[k*N + i + 1];
+						z[k*N + i + 1] = s*z[k*N + i] + c*f;
+						z[k*N + i] = c*z[k*N + i] - s*f;
+					}
+				}
+				if (r == 0.0 && i >= l) continue;
+				d[l] -= p;
+				e[l] = g;
+				e[m] = 0.0;
+			}
+		} while (m != l);
+	}
+}
+
+void eigensystem(double *mat, int N, double *eval, double *evec) {
+	double *e;
+
+	e = (double*)calloc(N, sizeof(double));
+
+	memcpy(evec, mat, sizeof(double)*N*N);
+
+	tred2(evec, N, eval, e);
+	tqli(eval, N, e, evec);
+
+	free(e);
 }
 
 void qrdecomp(double *A, int M, int N,double *bvec) {
 	int j,i,k,u,t;
 	double *x,*v,*AT,*w;
 	double beta;
-	
+
 	if (M < N) {
 			printf("M should be greater than or equal to N");
 			exit(1);
@@ -1055,28 +1634,28 @@ void qrdecomp(double *A, int M, int N,double *bvec) {
 	v = (double*) malloc(sizeof(double) * M);
 	AT = (double*) malloc(sizeof(double) * M * N);
 	w = (double*) malloc(sizeof(double) * M * M);
-	
+
 	for(j = 0; j < N;++j) {
 		for(i=j;i < M;++i) {
 			x[i-j] = A[i*N+j];
-			
+
 		}
-		
+
 		beta = house(x,M-j,v);
 		bvec[j] = beta;
-	
+
 		for (i=j; i < M; i++) {
 			t = i * N;
 			u = 0;
 			for (k=j; k < N; k++) {
 				AT[u+i-j] = A[k+t];
 				u+=(M-j);
-				
+
 			}
-			
+
 		}
-		
-		
+
+
 		mmult(AT,v,w,N-j,M-j,1);
 		scale(w,N-j,1,beta);
 		mmult(v,w,AT,M-j,1,N-j);
@@ -1091,25 +1670,25 @@ void qrdecomp(double *A, int M, int N,double *bvec) {
 				A[i*N+j] = v[i-j];
 			}
 		}
-		 
+
 	}
-	
+
 	free(x);
 	free(v);
 	free(AT);
 	free(w);
-	
+
 }
 
 void getQR(double *A,int M,int N,double *bvec,double *Q, double *R) {
 	int i,j,k,t,u;
 	double *x,*v,*AT,*w;
-	
+
 	x = (double*) malloc(sizeof(double) * M);
 	v = (double*) malloc(sizeof(double) * M);
 	AT = (double*) malloc(sizeof(double) * M * N);
 	w = (double*) malloc(sizeof(double) * M * M);
-	
+
 	for(i = 0; i < N;++i) {
 		t = i *N;
 		for(j = 0; j < N;++j) {
@@ -1120,7 +1699,7 @@ void getQR(double *A,int M,int N,double *bvec,double *Q, double *R) {
 			}
 		}
 	}
-	
+
 	for(i = 0; i < M;++i) {
 		t = i *N;
 		for(j = 0; j < N;++j) {
@@ -1131,14 +1710,14 @@ void getQR(double *A,int M,int N,double *bvec,double *Q, double *R) {
 			}
 		}
 	}
-	
+
 	for(j = N-1; j >= 0;--j) {
 		v[0] = 1.;
 		for(i=j+1;i < M;++i) {
 			v[i-j] = A[i*N+j];
-			
+
 		}
-		
+
 		for (i=j; i < M; i++) {
 			t = i * N;
 			u = 0;
@@ -1146,22 +1725,22 @@ void getQR(double *A,int M,int N,double *bvec,double *Q, double *R) {
 				AT[u+i-j] = Q[k+t];
 				u+=(M-j);
 			}
-			
+
 		}
-	
+
 		mmult(AT,v,w,N-j,M-j,1);
 		scale(w,N-j,1,bvec[j]);
 		mmult(v,w,AT,M-j,1,N-j);
-		
+
 		for (i=j; i < M; i++) {
 			t = i *N;
 			for (k=j; k < N; k++) {
 				Q[t+k] -= AT[(i-j)*(N-j) + k - j];
 			}
 		}
-	 
+
 	}
-	
+
 	free(x);
 	free(v);
 	free(AT);
@@ -1176,33 +1755,33 @@ void hessenberg(double *A,int N) {
 	v = (double*) malloc(sizeof(double) * N);
 	AT = (double*) malloc(sizeof(double) * N * N);
 	w = (double*) malloc(sizeof(double) * N);
-	
+
 	for (k = 0; k < N-2;++k) {
 		for(i=k + 1;i < N;++i) {
 			x[i-k-1] = A[i*N+k];
 			//printf("x %lf \n",x[i-k-1]);
-			
+
 		}
-		
+
 		beta = house(x,N-k-1,v);
-		
-		
+
+
 		for (i=k+1; i < N; i++) {
 			t = i * N;
 			u = 0;
 			for (j=k; j < N; j++) {
 				AT[u+i-k-1] = A[j+t];
-				u+=(N-k-1);				
+				u+=(N-k-1);
 			}
 		}
 		//mdisplay(AT,N-k,N-k-1);
-		
-		
+
+
 		mmult(AT,v,w,N-k,N-k-1,1);
 		scale(w,N-k,1,beta);
 		mmult(v,w,AT,N-k-1,1,N-k);
 		//mdisplay(AT,N-k-1,N-k);
-		
+
 		for (i=k+1; i < N; i++) {
 			t = i * N;
 			for (j=k; j < N; j++) {
@@ -1210,7 +1789,7 @@ void hessenberg(double *A,int N) {
 			}
 		}
 		//mdisplay(A,N,N);
-		
+
 		for (i=0; i < N; i++) {
 			t = i * N;
 			u = i * (N-k-1);
@@ -1219,12 +1798,12 @@ void hessenberg(double *A,int N) {
 			}
 		}
 		//mdisplay(AT,N,N-k-1);
-		
+
 		mmult(AT,v,w,N,N-k-1,1);
 		scale(w,N,1,beta);
 		mmult(w,v,AT,N,1,N-k-1);
 		//mdisplay(AT,N,N-k-1);
-		
+
 		for (i=0; i < N; i++) {
 			t = i * N;
 			u = i * (N-k-1);
@@ -1232,9 +1811,9 @@ void hessenberg(double *A,int N) {
 				A[t+j] -= AT[u+j-k-1];
 			}
 		}
-		
+
 	}
-	
+
 	free(x);
 	free(v);
 	free(AT);
@@ -1248,7 +1827,7 @@ void francisQR(double *A,int N) {
 	int NN;
 	/*
 	 * Reference - Algorithm 7.5.1 Golub,van Loan Matrix Computations 3rd Edition
-	 */ 
+	 */
 	x = (double*) malloc(sizeof(double) * 3);
 	v = (double*) malloc(sizeof(double) * 3);
 	AT = (double*) malloc(sizeof(double) * 3 * N);
@@ -1256,19 +1835,19 @@ void francisQR(double *A,int N) {
 	n = N-1;
 	m = n-1;
 	NN = N*N;
-	
+
 	s = A[NN-1] + A[NN-N-2];
 	t2 = A[NN-1] * A[NN-N-2] - A[NN-2] * A[NN-N-1];
-	
+
 	x[0] = A[0]*A[0] + A[1]*A[N] - s*A[0] + t2;
 	x[1] = A[N]*(A[0] + A[N+1] - s);
 	x[2] = A[N] * A[N+N+1];
 	if (N <= 2) {
 		return;
 	}
-	
+
 	for (k = -1; k < N - 3;++k) {
-		
+
 		beta = house(x,3,v);
 		//mdisplay(x,3,1);
 		if (k > 0) {
@@ -1276,21 +1855,21 @@ void francisQR(double *A,int N) {
 		} else {
 			q = 0;
 		}
-		
+
 		//printf("q %d \n",q);
 		for (i=k+1; i < k+4; i++) {
 			t = i * N;
 			u = 0;
 			for (j=q; j < N; j++) {
 				AT[u+i-k-1] = A[j+t];
-				u+=3;		
+				u+=3;
 			}
 		}
-		
+
 		mmult(AT,v,w,N-q,3,1);
 		scale(w,N-q,1,beta);
 		mmult(v,w,AT,3,1,N-q);
-		
+
 		for (i=k+1; i < k+4; i++) {
 			t = i * N;
 			for (j=q; j < N; j++) {
@@ -1311,12 +1890,12 @@ void francisQR(double *A,int N) {
 				AT[u+j-k-1] = A[t+j];
 			}
 		}
-		
+
 		mmult(AT,v,w,r,3,1);
 		scale(w,r,1,beta);
 		mmult(w,v,AT,r,1,3);
 		//mdisplay(AT,N,N-k-1);
-		
+
 		for (i=0; i < r; i++) {
 			t = i * N;
 			u = i * 3;
@@ -1327,25 +1906,25 @@ void francisQR(double *A,int N) {
 		//mdisplay(A,N,N);
 		x[0] = A[N*(k+2) + k+1];
 		x[1] = A[N*(k+3) + k+1];
-		
+
 		if (k < n-3) {
 			x[2] = A[N*(k+4) + k+1];
-		} 
+		}
 		//mdisplay(x,3,1);
-		
+
 	}
 	//mdisplay(x,2,1);
 	beta = house(x,2,v);
-	
+
 	for (i=n-1; i < N; i++) {
 		t = i * N;
 		u = 0;
 		for (j=n-2; j < N; j++) {
 			AT[u+i-n+1] = A[j+t];
-			u+=2;		
+			u+=2;
 		}
 	}
-	
+
 	mmult(AT,v,w,3,2,1);
 	scale(w,3,1,beta);
 	mmult(v,w,AT,2,1,3);
@@ -1355,7 +1934,7 @@ void francisQR(double *A,int N) {
 			A[t+j] -= AT[(i-n+1)*3 + j - n + 2];
 		}
 	}
-	
+
 	for (i=0; i < N; i++) {
 		t = i * N;
 		u = i * 2;
@@ -1363,12 +1942,12 @@ void francisQR(double *A,int N) {
 			AT[u+j-n+1] = A[t+j];
 		}
 	}
-	
+
 	mmult(AT,v,w,N,2,1);
 	scale(w,N,1,beta);
 	mmult(w,v,AT,N,1,2);
 		//mdisplay(AT,N,N-k-1);
-		
+
 	for (i=0; i < N; i++) {
 		t = i * N;
 		u = i * 2;
@@ -1376,25 +1955,25 @@ void francisQR(double *A,int N) {
 			A[t+j] -= AT[u+j-n+1];
 		}
 	}
-	
-	
+
+
 	free(x);
 	free(v);
 	free(AT);
 	free(w);
-	
+
 }
 
 void eig22(double *A, int stride,double *eigre,double *eigim) {
 	int N;
 	double a11,a12,a21,a22,c,s,c2,s2,cs,t1,t,t2,at11,at12,at21,at22;
 	N = stride;
-	
+
 	a11 = A[0];
 	a12 = A[1];
 	a21 = A[N];
 	a22 = A[N+1];
-	
+
 	if ( (a12 + a21) == 0) {
 		c = 1./sqrt(2.0);
 		s = c;
@@ -1404,7 +1983,7 @@ void eig22(double *A, int stride,double *eigre,double *eigim) {
 		c = 1./sqrt(1 + t*t);
 		s = c*t;
 	}
-	
+
 	c2 = c*c;
 	s2 = s*s;
 	cs = c*s;
@@ -1413,11 +1992,11 @@ void eig22(double *A, int stride,double *eigre,double *eigim) {
 	at12 = c2 * a12 - s2 * a21 + cs * (a11 - a22);
 	at21 = c2 * a21 - s2 * a12 + cs * (a11 - a22);
 	at22 = c2 * a22 + s2 * a11 + cs * (a12 + a21);
-	
+
 	eigre[0] = eigre[1] = at11;
 	eigim[0] = sqrt(-at12 * at21);
 	eigim[1] = -sqrt(-at12 * at21);
-	
+
 	if ( at12*at21 >= 0) {
 		if (at12 == 0) {
 			c = 0;
@@ -1435,9 +2014,9 @@ void eig22(double *A, int stride,double *eigre,double *eigim) {
 		eigim[0] = eigim[1] = 0.0;
 		eigre[0] = at11 - cs * (at12 + at21);
 		eigre[1] = at11 + cs * (at12 + at21);
-		
+
 	}
-	
+
 }
 
 int francis_iter(double *A, int N, double *H) {
@@ -1452,11 +2031,11 @@ int francis_iter(double *A, int N, double *H) {
 	for(i = 0; i < N*N;++i) {
 		H[i] = A[i];
 	}
-	
+
 	hessenberg(H,N);
-	
+
 	while (p > 1 && it < brkpoint) {
-		
+
 		while (p > 1 && (H[N*p + p-1] == 0 || H[N*(p-1) + p-2] == 0)) {
 			if (H[N*p + p-1] == 0) {
 				p--;
@@ -1464,7 +2043,7 @@ int francis_iter(double *A, int N, double *H) {
 				p=p-2;
 			}
 		}
-		
+
 		if (p > 0) {
 			q = p-1;
 			while (q > 0 && fabs(H[N*q + q-1]) != 0) {
@@ -1496,13 +2075,13 @@ int francis_iter(double *A, int N, double *H) {
 			//printf("iter %d \n",it);
 		}
 	}
-	
+
 	if (it == brkpoint) {
 		success = 0;
 	} else {
 		success = 1;
 	}
-	
+
 	free(temp);
 	return success;
 }
@@ -1511,12 +2090,12 @@ static void eig2t(double *A, int stride) {
 	int N;
 	double a11,a12,a21,a22,c,s,c2,s2,cs,t1,t,at11,at12,at21,at22;
 	N = stride;
-	
+
 	a11 = A[0];
 	a12 = A[1];
 	a21 = A[N];
 	a22 = A[N+1];
-	
+
 	if ( (a12 + a21) == 0) {
 		c = 1./sqrt(2.0);
 		s = c;
@@ -1526,7 +2105,7 @@ static void eig2t(double *A, int stride) {
 		c = 1./sqrt(1 + t*t);
 		s = c*t;
 	}
-	
+
 	c2 = c*c;
 	s2 = s*s;
 	cs = c*s;
@@ -1560,14 +2139,14 @@ void eig(double *A,int N,double *eigre,double *eigim) {
 		} else {
 			i++;
 		}
-		
+
 	}
 	//mdisplay(H,N,N);
 	i = 0;
 	while (i < n) {
 		u = i * N;
 		t = (i+1)*N;
-		
+
 		if (H[t+i] != 0.) {
 			if (H[u+i+1] * H[t+i] < 0.) {
 				eigre[i] = H[u+i];
@@ -1586,24 +2165,24 @@ void eig(double *A,int N,double *eigre,double *eigim) {
 				eigre[i+1] = H[u+i] + cs * (H[u+i+1] + H[t+i]);
 				eigim[i] = 0.;
 				eigim[i+1] = 0.;
-				
+
 			}
-			
+
 			i= i + 2;
-			
+
 		} else {
 			eigre[i] = H[u+i];
 			eigim[i] = 0.;
 			i++;
 		}
-		
+
 	}
-	
+
 	if (i == n) {
 		eigre[i] = H[N*N - 1];
 		eigim[i] = 0.;
 	}
-	
+
 	free(H);
 }
 
@@ -1611,7 +2190,7 @@ static int rcholu(double *A,int N, int stride, double *U22) {
 	int sc;
 	int j,i,u,w;
 	double u11;
-	
+
 	if (N == 1) {
 		if (A[0] > 0) {
 			A[0] = sqrt(A[0]);
@@ -1636,26 +2215,26 @@ static int rcholu(double *A,int N, int stride, double *U22) {
 				A[j + u] -= U22[j + w];
 			}
 		}
-		
+
 		sc = rcholu(A+stride+1,N-1,stride,U22);
 		if (sc == -1) {
 			return -1;
 		}
-		
+
 	}
-	
+
 	return sc;
-	
+
 }
 
 static int rbcholu(double *A,int N, int stride, double *UB, double *UT) {
 	int bs,bb,i,j,Nb,t,k,u,v,w,sc;
 	double *b,*x,*U12,*U12T;
 	double sum;
-	
+
 	bs = (int) BLOCKSIZE;
 	bb = bs*bs;
-	
+
 	if (N <= BLOCKSIZE) {
 		sc = rcholu(A,N,stride,UB);
 		if (sc == -1) {
@@ -1668,7 +2247,7 @@ static int rbcholu(double *A,int N, int stride, double *UB, double *UT) {
 		U12T = (double*) malloc(sizeof(double) * Nb * bs);
 		U12 = (double*) malloc(sizeof(double) * Nb * bs);
 		rcholu(A,bs,stride,UB); // U11
-		
+
 		for (i =0; i < bs;++i) {
 			t = i *stride;
 			u = 0;
@@ -1677,7 +2256,7 @@ static int rbcholu(double *A,int N, int stride, double *UB, double *UT) {
 				u += bs;
 			}
 		}
-		
+
 		for(k = 0; k < Nb;++k) {
 			u = k * bs;
 			for(i = 0; i < bs;++i) {
@@ -1699,7 +2278,7 @@ static int rbcholu(double *A,int N, int stride, double *UB, double *UT) {
 				v += stride;
 			}
 		}
-		
+
 		mtranspose(U12T,Nb,bs,U12);
 		mmult(U12T,U12,UT,Nb,bs,Nb);
 		free(U12T);
@@ -1713,13 +2292,13 @@ static int rbcholu(double *A,int N, int stride, double *UB, double *UT) {
 				A[j + u] -= UT[j + w];
 			}
 		}
-		
+
 		sc = rbcholu(A + bs * stride + bs,Nb,stride,UB,UT);
 		if (sc == -1) {
 			return -1;
 		}
 	}
-	
+
 	return sc;
 }
 
@@ -1727,10 +2306,10 @@ int cholu(double *A, int N) {
 	int stride,i,j,t,sc;
 	double *U22;
 	U22 = (double*) malloc(sizeof(double) * N * N);
-	stride = N; 
-	
+	stride = N;
+
 	sc = rcholu(A,N,stride,U22);
-	
+
 	for(i=0; i < N;++i) {
 		t = i *N;
 		for(j=0;j < i;++j) {
@@ -1740,7 +2319,7 @@ int cholu(double *A, int N) {
 
 	free(U22);
 	return sc;
-	
+
 }
 
 int bcholu(double *A, int N) {
@@ -1749,10 +2328,10 @@ int bcholu(double *A, int N) {
 	b = (int) BLOCKSIZE;
 	UT = (double*) malloc(sizeof(double) * N * N);
 	UB = (double*) malloc(sizeof(double) * b * b);
-	stride = N; 
-	
+	stride = N;
+
 	sc = rbcholu(A,N,stride,UB,UT);
-	
+
 	for(i=0; i < N;++i) {
 		t = i *N;
 		for(j=0;j < i;++j) {
@@ -1762,9 +2341,9 @@ int bcholu(double *A, int N) {
 
 	free(UB);
 	free(UT);
-	
+
 	return sc;
-	
+
 }
 
 int chol(double *A, int N) {
@@ -1780,7 +2359,7 @@ int chol(double *A, int N) {
 static void rchold(double *A,int N, int stride, double *U22) {
 	int j,i,u,w;
 	double d1;
-	
+
 	if (N == 1) {
 		return;
 	} else {
@@ -1797,21 +2376,21 @@ static void rchold(double *A,int N, int stride, double *U22) {
 				A[j + u] -= U22[j + w];
 			}
 		}
-		
+
 		rchold(A+stride+1,N-1,stride,U22);
-	
+
 	}
-		
+
 }
 
 void chold(double *A, int N) {
 	int stride,i,j,t;
 	double *U22;
 	U22 = (double*) malloc(sizeof(double) * N * N);
-	stride = N; 
-	
+	stride = N;
+
 	rchold(A,N,stride,U22);
-	
+
 	for(i=0; i < N;++i) {
 		t = i *N;
 		for(j=0;j < i;++j) {
@@ -1820,7 +2399,7 @@ void chold(double *A, int N) {
 	}
 
 	free(U22);
-	
+
 }
 
 void svd_sort(double *U,int M,int N,double *V,double *q) {
@@ -1915,7 +2494,7 @@ int svd(double *A,int M,int N,double *U,double *V,double *q) {
 	 * The program return error codes
 	 *
 	 *  Code 0 if the computation is successful
-	 *  Code -1 If  M < N . Transpose the matrix such that rows > columns and trye again
+	 *  Code -1 If  M < N . Transpose the matrix such that rows > columns and try again
 	 *  Code 15 if maximum iterations are reached without achieving convergence. Increase SVDMAXITER value
 	 *  in matrix.h header file. Default Value is 50
 	 *
@@ -2302,6 +2881,26 @@ int svd(double *A,int M,int N,double *U,double *V,double *q) {
 	return ierr;
 }
 
+int svd_transpose(double *A, int M, int N, double *U, double *V, double *q) {
+	int ret;
+	/* Call this routine if M < N
+	* U = MXM
+	* V - NXM
+	* Q - MX1
+	* A = (V * diag(Q) * U' )'
+	*/
+
+	if (M >= N) {
+		printf("M>=N. Use svd routine.\n");
+		exit(-1);
+	}
+
+	mtranspose(A, M, N, V);
+
+	ret = svd(V, N, M, V, U, q);
+	return ret;
+}
+
 static int rank_c(double *A, int M,int N) {
 	int i,rnk,ret;
 	double eps,tol,szmax,qmax;
@@ -2361,3 +2960,104 @@ int rank(double *A, int M,int N) {
 
 }
 
+void rsvd(double *A, int M, int N,int K, int oversample, int n_iter,double *U, double *V, double *S) {
+	/*
+	A - MXN matrix
+	K - Rank of approximation being constructed. K <= min(m,n). default value 6
+	L - block size of the normalized power iterations. Default K+2
+	n_iter - number of normalized power iterations to conduct. Default 2
+	U - MXK
+	V - NXK
+	S - Diagonal Matrix KXK
+	*/
+
+	if (n_iter == 0) {
+		printf("Number of power iterations must be >= 1 or set it to < 0 if you want to use default value #RSVD_POWER_ITERATIONS \n");
+		exit(-1);
+	}
+	else if (n_iter < 0) {
+		n_iter = (int)RSVD_POWER_ITERATIONS;
+	}
+
+	int i, j,maxdim,L;
+	double *Q1,*Q2,*AT,*R,*bvec,*uq,*vq,*sq;
+	int *ipiv;
+
+	L = K + oversample;
+
+	maxdim = M > N ? M : N;
+	srand(time(NULL));
+
+	if (M >= N) {
+
+		Q1 = (double*)malloc(sizeof(double)*maxdim*L);
+		Q2 = (double*)malloc(sizeof(double)*maxdim*L);
+		AT = (double*)malloc(sizeof(double)*M*N);
+		ipiv = (int*)malloc(sizeof(int)*maxdim);
+		R = (double*)malloc(sizeof(double)*L*L);
+		bvec = (double*)malloc(sizeof(double)*L*L);
+
+		uq = (double*)malloc(sizeof(double)*L*L);
+		vq = (double*)malloc(sizeof(double)*L*N);
+		sq = (double*)malloc(sizeof(double)*L);
+
+		random_matrix(Q1, N, L);// N*L
+
+		mtranspose(A, M, N, AT);
+
+		for (i = 0; i < n_iter; ++i) {
+			mmult(A, Q1, Q2, M, N, L);// M*L
+			rludecomp(Q2, M, L, ipiv);
+			getPU(Q2, M, L, ipiv, Q1, NULL);// M*L
+			mmult(AT, Q1, Q2, N, M, L);//N*L
+			rludecomp(Q2, N, L, ipiv);
+			getPU(Q2, N, L, ipiv, Q1, NULL);// N*L
+		}
+
+		mmult(A, Q1, Q2, M, N, L);
+		qrdecomp(Q2, M, L, bvec);
+		getQR(Q2, M, L, bvec, Q1, R);// M*L
+
+		mtranspose(Q1, M, L, Q2);// L*M
+		mmult(Q2, A, Q1, L, M, N);// L* N
+
+		svd_transpose(Q1, L, N, uq, vq, sq);
+		// uq - LXL
+		// vq - NXL
+		//itranspose(vq, N, L);
+
+		for (i = 0; i < N; ++i) {
+			for (j = 0; j < K; ++j) {
+				V[i*K + j] = vq[i*L + j];
+			}
+		}
+
+		memcpy(S, sq, sizeof(double)*K);
+
+		itranspose(Q2, L, M);
+
+		mmult(Q2, uq, Q1, M, L, L);
+
+		for (i = 0; i < M; ++i) {
+			for (j = 0; j < K; ++j) {
+				U[i*K + j] = Q1[i*L + j];
+			}
+		}
+
+		free(Q1);
+		free(Q2);
+		free(ipiv);
+		free(AT);
+		free(R);
+		free(bvec);
+		free(uq);
+		free(vq);
+		free(sq);
+
+	}
+	else {
+		printf("Randomized SVD is only implemented for tall matrices (rows > columns)");
+		exit(-1);
+	}
+
+}

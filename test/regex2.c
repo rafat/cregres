@@ -21,7 +21,7 @@ int main(void) {
 
 	N = 15;
 	p = 3;
-	// p = 3 corresponds to one dependent variable (YY) and two independent variables
+	// p = 3 corresponds to number of coefficients (including the intercept) - b0, b1 , b2
 	// YY = b0 + b1 * X1 + b2 * X2 + u
 	// where u is residual vector of length N
 	// contained in XX vector. where XX = [X1,X2] .
@@ -41,6 +41,7 @@ int main(void) {
 
 
 	fit = reg_init(N, p);
+	setIntercept(fit,1);// Optional as default value for intercept is 1
 	regress(fit, XX, YY, res2, varcovar, alpha);// Perform Regression
 	// res2 - residuals vector. varcovar - variance-covariance matrix
 	// alpha - Used to determine (1-alpha) * 100 % confidence interval
@@ -49,7 +50,7 @@ int main(void) {
 	summary(fit); // summary of regression
 	anova(fit); // ANOVA Table
 	confint(fit); //Confidence Intervals of Regression Parameters
-	zerohyp_val(fit, tval3, pval3); // Obtaon Zerohypothesis t-test values
+	zerohyp_val(fit, tval3, pval3); // Obtain Zerohypothesis t-test values
 
 	double inpx[2] = { 2610, 16 };
 	double varx[2] = { 0.0, 0.0 };

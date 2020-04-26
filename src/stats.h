@@ -10,7 +10,7 @@
 
 #include "conv.h"
 #include "pdist.h"
-#include "matrix.h"
+#include "lls.h"
 #include "cregres.h"
 
 #ifdef __cplusplus
