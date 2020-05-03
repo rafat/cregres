@@ -22,6 +22,9 @@ Makefile
 *.exe
 *.dll
 
+#stackdumps
+*.stackdump
+
 #Eclipse
 .project
 .cproject

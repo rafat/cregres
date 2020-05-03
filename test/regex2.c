@@ -42,7 +42,7 @@ int main(void) {
 
 	fit = reg_init(N, p);
 	setIntercept(fit,1);// Optional as default value for intercept is 1
-	setLLSMethod(fit,"svd");
+	setLLSMethod(fit,"qr");
 	regress(fit, XX, YY, res2, varcovar, alpha);// Perform Regression
 	// res2 - residuals vector. varcovar - variance-covariance matrix
 	// alpha - Used to determine (1-alpha) * 100 % confidence interval
